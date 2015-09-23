@@ -1,19 +1,20 @@
+#requires -Module PackageManagement
 function Import-NugetLibrary {
     param(
         [Parameter(Mandatory)]
         [String]$Name,
 
-        [String]$Destination = "$OneDrive\WindowsPowerShell\Libraries"
+        [String]$Destination = "$(Split-Path $Profile)\Libraries"
     )
-
-    if(!(Get-PackageSource -Name NuGet)) {
-        Register-PackageSource NuGet -Location 'https://www.nuget.org/api/v2' -ForceBootstrap -ProviderName NuGet
-    }
-
     $ErrorActionPreference = "Stop"
 
-    $Destination = Convert-Path $Destination
-    $Package = Install-Package -Name $Name -Destination $Destination -Source 'https://www.nuget.org/api/v2' -ExcludeVersion -PackageSaveMode nuspec -Force
+    if(!(Test-Path $Destination -Type Container)) {
+        throw "The destination path ($Destination) must point to an existing folder, NuGet will install packages in subdirectories of this folder."
+    }
+
+    # Normalize: nuget requires destination NOT end with a slash
+    $Destination = (Convert-Path $Destination).TrimEnd("\")
+    $Package = Install-Package -Name $Name -Destination $Destination -ProviderName NuGet -Source 'https://www.nuget.org/api/v2' -ExcludeVersion -PackageSaveMode nuspec -Force
     $PackagePath = "$Destination\$Name"
 
     # Nuget packages hide their assemblies in folders with version numbers...
